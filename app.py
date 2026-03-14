@@ -1,6 +1,8 @@
 """
 Streamlit ChatGPT Clone with Llama 3.3 70B on Groq
 Run: streamlit run app.py
+Make sure you have a .streamlit/secrets.toml file with:
+GROQ_API_KEY = "your-key-here"
 """
 
 import os
@@ -18,10 +20,17 @@ st.caption("Powered by Groq's Llama 3.3 70B model – streaming responses")
 # 2. API Key Setup
 # ----------------------------
 # Try environment variable first, then Streamlit secrets
-api_key = os.getenv("GROQ_API_KEY") or st.secrets.get("GROQ_API_KEY", None)
+api_key = os.getenv("GROQ_API_KEY") or st.secrets.get("GROQ_API_KEY")
 
 if not api_key:
-    st.error("🚨 GROQ_API_KEY not found. Please set it in environment variables or Streamlit secrets.")
+    st.error(
+        "🚨 GROQ_API_KEY not found.\n\n"
+        "Please set it in a Streamlit secret:\n"
+        "1. Create a folder named `.streamlit` in the same directory as `app.py`.\n"
+        "2. Inside it, create a file `secrets.toml` with the line:\n"
+        "   GROQ_API_KEY = \"your-actual-api-key\"\n\n"
+        "Or set the environment variable GROQ_API_KEY."
+    )
     st.stop()
 
 # Initialize Groq client
@@ -52,7 +61,7 @@ if prompt := st.chat_input("Type your message..."):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Prepare messages for API (exclude any non-dict if present)
+    # Prepare messages for API
     messages_for_api = st.session_state.messages
 
     # Call Groq with streaming
@@ -89,5 +98,4 @@ if prompt := st.chat_input("Type your message..."):
     except Exception as e:
         st.error(f"⚠️ Unexpected error: {e}")
 
-    # Force a rerun to update UI (optional, but streamlit handles it automatically)
-    st.rerun()
+    # ❌ Removed st.rerun() – Streamlit automatically re-runs after each interaction
