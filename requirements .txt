@@ -1,8 +1,0 @@
-streamlit
-numpy==1.26.4
-faiss-cpu==1.9.0
-sentence-transformers
-langchain
-langchain-community
-pypdf
-langchain-text-splitters
