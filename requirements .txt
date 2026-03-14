@@ -1,2 +1,10 @@
-groq
 streamlit
+groq
+langchain
+langchain-community
+faiss-cpu
+sentence-transformers
+pypdf
+networkx
+pandas
+plotly
