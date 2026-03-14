@@ -10,7 +10,6 @@ A practical RAG chatbot for company policies using:
 All AI pipeline steps are included: data loading, preprocessing, indexing,
 retrieval, generation, and deployment.
 """
-
 import os
 import pickle
 import requests

@@ -1,2 +1,8 @@
-streamlit>=1.38.0
-groq>=0.11.0
+streamlit
+numpy
+faiss-cpu
+sentence-transformers
+langchain
+langchain-community
+pypdf
+langchain-text-splitters
