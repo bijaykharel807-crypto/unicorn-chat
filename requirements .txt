@@ -1,10 +1,2 @@
 streamlit
-groq
-langchain
-langchain-community
-faiss-cpu
-sentence-transformers
-pypdf
-networkx
-pandas
-plotly
+groq>=0.5.0
