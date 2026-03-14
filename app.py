@@ -1,13 +1,29 @@
 """
 Streamlit ChatGPT Clone with Llama 3.3 70B on Groq
 Run: streamlit run app.py
-Make sure you have a .streamlit/secrets.toml file with:
-GROQ_API_KEY = "your-key-here"
+
+Make sure you have:
+- A folder named `.streamlit` in the same directory as app.py
+- Inside it, a file `secrets.toml` with:
+    GROQ_API_KEY = "your-actual-api-key"
+- Or set the environment variable GROQ_API_KEY
 """
 
 import os
 import streamlit as st
-from groq import Groq, RateLimitError, APIError
+
+# ----------------------------
+# Safe import of Groq
+# ----------------------------
+try:
+    from groq import Groq, RateLimitError, APIError
+except ImportError:
+    st.error(
+        "❌ The `groq` library is not installed.\n\n"
+        "Please install it by running:\n"
+        "```\npip install groq\n```"
+    )
+    st.stop()
 
 # ----------------------------
 # 1. Page Configuration
@@ -61,7 +77,7 @@ if prompt := st.chat_input("Type your message..."):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Prepare messages for API
+    # Prepare messages for API (system message is included automatically)
     messages_for_api = st.session_state.messages
 
     # Call Groq with streaming
@@ -98,4 +114,4 @@ if prompt := st.chat_input("Type your message..."):
     except Exception as e:
         st.error(f"⚠️ Unexpected error: {e}")
 
-    # ❌ Removed st.rerun() – Streamlit automatically re-runs after each interaction
+    # No need for st.rerun() – Streamlit automatically re-runs after each interaction
