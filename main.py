@@ -120,7 +120,7 @@ def call_llama(messages):
     """Send a chat completion request to Groq using direct HTTP."""
     headers = {
         "Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}",
-        "Content-Type": "application/json"
+     
     }
     data = {
         "model": MODEL_NAME,
