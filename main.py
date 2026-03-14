@@ -18,7 +18,8 @@ Create .streamlit/secrets.toml with:
 """
 
 import streamlit as st
-from groq import Groq
+import groq
+client = groq.Groq(api_key=st.secrets["GROQ_API_KEY"])
 import networkx as nx
 import plotly.graph_objects as go
 from pypdf import PdfReader
