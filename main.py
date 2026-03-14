@@ -6,9 +6,6 @@ A practical RAG chatbot for company policies using:
 - FAISS for vector search
 - Llama 3.3 70B (via Groq API, direct HTTP requests)
 - Streamlit for the user interface
-
-All AI pipeline steps are included: data loading, preprocessing, indexing,
-retrieval, generation, and deployment.
 """
 import os
 import pickle
@@ -20,20 +17,26 @@ import faiss
 from sentence_transformers import SentenceTransformer
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 # ---------- Configuration ----------
-POLICIES_FOLDER = "policies"                # Folder containing policy documents
-CHUNK_SIZE = 500                            # Words per chunk
-CHUNK_OVERLAP = 50                           # Overlap between chunks
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"         # Model for embeddings
-FAISS_INDEX_PATH = "policy_index.faiss"      # Saved FAISS index
-CHUNKS_PATH = "chunks.pkl"                   # Saved chunk texts
+POLICIES_FOLDER = "policies"
+CHUNK_SIZE = 500
+CHUNK_OVERLAP = 50
+EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+FAISS_INDEX_PATH = "policy_index.faiss"
+CHUNKS_PATH = "chunks.pkl"
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 MODEL_NAME = "llama-3.3-70b-versatile"
 
-# ---------- 1. Document Loading & Preprocessing ----------
+# ---------- Cached Model Loader ----------
+@st.cache_resource
+def load_model():
+    """Load the sentence transformer model (cached)."""
+    return SentenceTransformer(EMBEDDING_MODEL)
+
+# ---------- Document Loading & Preprocessing ----------
 def load_documents(folder_path):
     """Load all PDF and TXT files from the given folder."""
-    # Check if folder exists
     if not os.path.exists(folder_path):
         st.warning("Folder 'policies' does not exist. Please create it and add policy documents.")
         return None
@@ -62,20 +65,20 @@ def chunk_documents(docs):
     chunks = splitter.split_documents(docs)
     return [chunk.page_content for chunk in chunks]
 
-# ---------- 2. Build FAISS Index (if not exists) ----------
+# ---------- Build FAISS Index (if not exists) ----------
 def build_index():
     """Load docs, create embeddings, and save FAISS index + chunks."""
     docs = load_documents(POLICIES_FOLDER)
-    if docs is None:   # Folder missing
+    if docs is None:
         return False
     if len(docs) == 0:
         st.error("No documents found. Please add policy files to the 'policies' folder.")
         return False
 
     chunk_texts = chunk_documents(docs)
-    # No info about chunk count
 
-    embedder = SentenceTransformer(EMBEDDING_MODEL)
+    # Use cached model
+    embedder = load_model()
 
     embeddings = embedder.encode(chunk_texts, show_progress_bar=True)
 
@@ -87,34 +90,32 @@ def build_index():
     with open(CHUNKS_PATH, "wb") as f:
         pickle.dump(chunk_texts, f)
 
-    # No success message
     return True
 
-# ---------- 3. Load Retrieval Assets (cached) ----------
+# ---------- Load Retrieval Assets (cached) ----------
 @st.cache_resource
 def load_retriever():
-    """Load the embedder, FAISS index, and chunks (cached)."""
+    """Load the FAISS index, chunks, and embedder (cached)."""
     # Build index if missing
     if not os.path.exists(FAISS_INDEX_PATH) or not os.path.exists(CHUNKS_PATH):
-        # No "Index not found" message
         success = build_index()
         if not success:
             st.stop()
 
-    embedder = SentenceTransformer(EMBEDDING_MODEL)
+    embedder = load_model()          # Reuse the same cached model
     index = faiss.read_index(FAISS_INDEX_PATH)
     with open(CHUNKS_PATH, "rb") as f:
         chunks = pickle.load(f)
     return embedder, index, chunks
 
-# ---------- 4. Retrieval Function ----------
+# ---------- Retrieval Function ----------
 def retrieve(query, embedder, index, chunks, k=5):
     """Return top‑k chunk texts most similar to the query."""
     query_emb = embedder.encode([query]).astype("float32")
     distances, indices = index.search(query_emb, k)
     return [chunks[i] for i in indices[0]]
 
-# ---------- 5. Groq API Call (without groq client) ----------
+# ---------- Groq API Call (without groq client) ----------
 def call_llama(messages):
     """Send a chat completion request to Groq using direct HTTP."""
     headers = {
@@ -138,7 +139,7 @@ def call_llama(messages):
         st.error(f"Failed to parse API response: {e}")
         return None
 
-# ---------- 6. Streamlit User Interface ----------
+# ---------- Streamlit User Interface ----------
 def main():
     st.set_page_config(page_title="Policy Assistant", page_icon="📘")
     st.title("📘 Company Policy Assistant")
@@ -164,11 +165,9 @@ def main():
 
         with st.chat_message("assistant"):
             with st.spinner("Searching policies..."):
-                # Retrieve relevant chunks
                 retrieved = retrieve(prompt, embedder, index, chunks, k=5)
                 context = "\n\n".join(retrieved)
 
-                # Build messages for LLM
                 system_msg = f"""You are a helpful assistant for company policies. 
 Use the following context to answer the user's question. 
 If the answer is not in the context, say you don't know. 
@@ -187,7 +186,6 @@ Context:
 
             if answer:
                 st.write(answer)
-                # Show sources for explainability
                 with st.expander("📄 Sources used"):
                     for i, chunk in enumerate(retrieved):
                         st.write(f"**Chunk {i+1}:**")
@@ -195,6 +193,5 @@ Context:
                         st.divider()
                 st.session_state.messages.append({"role": "assistant", "content": answer})
 
-# ---------- 7. Entry Point ----------
 if __name__ == "__main__":
     main()
