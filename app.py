@@ -5,7 +5,7 @@ Run: streamlit run app.py
 
 import os
 import streamlit as st
-from groq import Groq, RateLimitError, APIError
+from groq import Groq
 
 # ----------------------------
 # 1. Page Configuration
